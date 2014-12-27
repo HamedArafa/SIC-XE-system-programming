@@ -153,13 +153,13 @@ struct Assembler
 	string programName, startLocation;
 	vector<Instruction> instructions;
 	int instructionCount;
-	
+
 	Assembler(vector<Instruction> instructions)
 	{
 		this -> instructions = instructions;
 		this -> instructionCount = instructions.size();
 	}
-	
+
 	void runPass1()
 	{
 		programName = getProgramName();
