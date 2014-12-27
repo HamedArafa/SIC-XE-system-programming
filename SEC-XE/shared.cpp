@@ -13,6 +13,7 @@ struct Instruction
 		this -> label = tokens[0];
 		this -> type = tokens[1];
 		this -> operands = tokens[2];
+		this -> format = PARSER :: getFormat();
 	}
 };
 

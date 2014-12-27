@@ -15,11 +15,6 @@ struct Instruction
 	}
 };
 
-int function2()
-{
-		return 4;
-}
-
 struct Symbol
 {
 	string name, location;

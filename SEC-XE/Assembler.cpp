@@ -50,10 +50,16 @@ struct Assembler
 		this -> instructionCount = instructions.size();
 	}
 	
+	void runPass1()
+	{
+		startLocation = getStartLocation();
+		getLocations();
+		printPass1();
+	}
 };
 
 int main()
 {
 	Assembler assembler(getInputCode());
-	
+	assembler.runPass1();
 }
