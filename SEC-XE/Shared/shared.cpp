@@ -1,113 +1,308 @@
-struct InstructionSymbol{		// contains the format definition for any instruction from the SIC/XE instruction set
-	string symbol;
-	string opCode;
-	int format;
-	int numberOfOperands ;
-	InstructionSymbol(string symbol,string opCode, int format , int numberOfOperands)
-	{
-		this->symbol=symbol;
-		this->opCode=opCode;
-		this->format=format;
-		this->numberOfOperands=numberOfOperands;
+#include "Common.cpp"
+#include "Numbering.cpp"
+
+struct Instruction
+{
+	/* OPERANDS VALUE TYPES */
+	static const int FOLLOW_MNEMONIC = 1, LABEL_OPERAND = 2, EXPRESSION_OPERAND = 3, CHAR_DATA_OPERAND = 4, HEX_DATA_OPERAND = 5, NUMBER_OPERAND = 6, ASTERISK_OPERAND = 7, EMPTY_OPERAND = 8;
+	
+	/* MNEMONIC TYPES */
+	static const int M_MNEMONIC = 1, R1R2_MNEMONIC = 2, R1_MNEMONIC = 3,  R1N_MNEMONIC = 4, N_MNEMONIC = 5, EMPTY_MNEMONIC = 6;
+	
+	/* INSTRUCTION ORIGINAL DATA FORMAT */
+	vector<string> tokens;
+	
+	/* INSTRUCTION INITIAL DATA */
+	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, #105A0, 58
+	int mnemonic, format, operandsType, immediateValue; // Example for corresponding values respectively: the value of R1R2_MNEMONIC which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
+	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral; // isLiteral is triggered when there is '=' sign in the operands
+	
+	/* INSTRUCTION AUXILIARY DATA */
+	string destinationRegister, sourceRegister; // The registers specified in the operands (if any).
+	int N; // The n which might be accompained with a register, for example in SHIFTR or come alone like in SVC
+	int expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
+	string expressionString; // Expression (as a string) to be executed later to get the target address TA.
+	
+	/* INSTRUCTION PROSESSED DATA (to be processed in pass 1 and 2) */
+	string location, objectCode;
+	bool baseRelative, PCRelative;
+	
+	/* INSTRUCTION CONSTRUCTORS */
+	// Empty Constructor
+	Instruction(){}
+	// Initial Constructor (used by the parser)
+	Instruction(vector<string> tokens, string label, string command, string operandsString, int mnemonic, int format, string opCode, int operandsType, int immediateValue, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, int expressionEquivilantValue, string expressionString)
+	{ 
+		this -> tokens = tokens;
+		this -> label = label;
+		this -> command = command;
+		this -> operandsString = operandsString;
+		this -> mnemonic = mnemonic;
+		this -> format = format;
+		this -> opCode = opCode;
+		this -> operandsType = operandsType;
+		this -> immediateValue = immediateValue;
+		this -> isIndirect = isIndirect;
+		this -> isImmediate = isImmediate;
+		this -> isIndexed = isIndexed;
+		this -> isExtended = isExtended;
+		this -> isLiteral = isLiteral;
+		this -> destinationRegister = destinationRegister;
+		this -> sourceRegister = sourceRegister;
+		this -> N = N;
+		this -> expressionEquivilantValue = expressionEquivilantValue;
+		this -> expressionString = expressionString;
 	}
 };
-class InstructionSet{		// loads the instruction set and provide functions for fetching
+
+class InstructionSetElement
+{
+	public:
+	string command, opCode, mnemonic;
+	int format;
+	
+	InstructionSetElement(){}
+	InstructionSetElement(string command, string mnemonic, int format, string opCode)
+	{
+		this -> command = command;
+		this -> mnemonic = mnemonic;
+		this -> format = format;
+		this -> opCode = opCode;
+	}
+};
+
+class InstructionSet
+{		// loads the instruction set and provide functions for fetching
 									// opcode, format, number of operands using the symbol of the instruction
 									// exmaple: instance.getFormat("ADD")  returns 3
 									//				instance.getFormat("+ADD")	returns 4
 									//	note : you have to call intialize to load the SIC/XE instruction set
-	vector<InstructionSymbol>instructionSymbols;
 	public:
-	string getOpCode(string symbol)
+		
+	static vector<InstructionSetElement> instructionSet;
+	
+	static int getMnemonicId(string mnemonic)
 	{
-		for (int i=0;i<instructionSymbols.size();i++){
-			if (symbol==instructionSymbols[i].symbol){
-				return instructionSymbols[i].opCode;
+		if(mnemonic == "m") return Instruction :: M_MNEMONIC;
+		if(mnemonic == "r1,r2") return Instruction :: R1R2_MNEMONIC;
+		if(mnemonic == "r1") return Instruction :: R1_MNEMONIC;
+		if(mnemonic == "r1,n") return Instruction :: R1N_MNEMONIC;
+		if(mnemonic == "n") return Instruction :: N_MNEMONIC;
+		return Instruction :: EMPTY_MNEMONIC;
+	}
+	static int getMnemonic(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return getMnemonicId(instructionSet[i].mnemonic);
+			}
+		}
+		return -1;
+	}
+	static int getFormat(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return instructionSet[i].format;
+			}
+		}
+		return -1;
+	}
+	static string getOpCode(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return instructionSet[i].opCode;
 			}
 		}
 		return "-1";
 	}
-	int getFormat(string symbol)
+	static void initialize()
 	{
-		for (int i=0;i<instructionSymbols.size();i++){
-			if (symbol==instructionSymbols[i].symbol){
-				return instructionSymbols[i].format;
-			}
-		}
-		return -1;
-	}
-	int getNumberOfOperands(string symbol)
-	{
-		for (int i=0;i<instructionSymbols.size();i++){
-			if (symbol==instructionSymbols[i].symbol){
-				return instructionSymbols[i].numberOfOperands;
-			}
-		}
-		return -1;
-	}
-	void initialize()
-	{
-		char temp[20];
-		string symbol,operands,format,opCode;
-		int realOperands,realFormat;
-		FILE * inp=fopen("../instructionSet.txt","r");
-		int cnt =0;
-		while( fscanf(inp,"%s",temp)!=EOF )			// read the instrction set from instructionSet.txt and load it
-		{
-			if (cnt%4==0){
-				symbol=temp;
-			}
-			else if (cnt%4==1){
-				operands=temp;
-			}
-			else if (cnt%4==2){
-				format=temp;
-			}
-			else{
-				opCode=temp;
-			}
-			if (cnt%4==3){
-				if (format=="2"){
-					realFormat=2;
-				}
-				else if (format=="1"){
-					realFormat=1;
-				}
-				else {
-					realFormat=3;
-				}
-				realOperands=1;
-				if (operands=="0"){
-					realOperands=0;
-				}
-				for (int i=0;i<operands.size();i++){
-					if (operands[i]==','){
-						realOperands++;
-					}
-				}
-				instructionSymbols.push_back( InstructionSymbol(symbol,opCode,realFormat,realOperands)  );
-				if (realFormat==3){
-					instructionSymbols.push_back( InstructionSymbol("+"+symbol,opCode,4,realOperands)  );
-				}
-			}
-			cnt++;
-		}
+		PARSER p;
+		vector<string> lines = READER :: scan(InstructionSetFilePath);
+		instructionSet = p.parseInstructionSet(lines);
 	}
 };
-struct Instruction
-{
-	vector<string> tokens;
-	string label, type, operands, location, objectCode;
-	int format;
-	bool indexed, extended, indirect, immediate;
 
-	Instruction(){}
-	Instruction(vector<string> tokens)
+struct READER
+{
+	static vector<string> scan(string filePath)
 	{
-		this -> tokens = tokens;
-		this -> label = tokens[0];
-		this -> type = tokens[1];
-		this -> operands = tokens[2];
+		freopen(filePath.c_str(), "r", stdin);
+		
+		vector<string> lines;
+		char line[100001];
+		
+		while(gets(line))
+			lines.push_back(line);
+		
+		return lines;
+	}
+};
+
+struct PARSER
+{
+	int mnemonic, operandsType, N, immediateValue;
+	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral;
+	string sourceRegister, destinationRegister, expressionString;
+	int expressionEquivilantValue;
+	
+	vector<string> tokenize(string line)
+	{
+		line += '\t';
+		int len = line.size();
+		string token = "";
+		vector<string> tokens;
+		for(int i=0; i<len; i++)
+		{
+			if(line[i] == '\t')
+			{
+				tokens.push_back(token);
+				token = "";
+			}
+			else token += line[i];
+		}
+		return tokens;
+	}
+	vector<string> capitalize(vector<string> lines)
+	{
+		for(int i=0; i<lines.size(); i++)
+			for(int j=0; j<lines[i].size(); j++)
+				if(isalpha(lines[i][j]))
+					lines[i][j] = toupper(lines[i][j]);
+		return lines;
+	}
+	bool isNumber(string s)
+	{
+		for(int i=0; i<s.size(); i++)
+			if(!isdigit(s[i])) return 0;
+		return 1;
+	}
+	bool isLabel(string s) // momken 7aga teegi +ALPHA bas? As it is not handled
+	{
+		for(int i=0; i<s.size(); i++)
+			if(s[i] == '+' || s[i] == '-')
+				return 0;
+		return 1;
+	}
+	
+	string getDestinationRegister(string operands)
+	{
+		string ret = "";
+		for(int i=0; i<operands.size(); i++)
+		{
+			if(operands[i] == ',')
+				break;
+			ret += operands[i];
+		}
+		return ret;
+	}
+	string getSourceRegister(string operands)
+	{
+		int i;
+		for(i=0; i<operands.size(); i++)
+			if(operands[i] == ',')
+				break;
+		return operands.substr(i+1);
+	}
+	int getN(string operands)
+	{
+		string ret = "";
+		for(int i=(int)operands.size()-1; i>=0; i--)
+		{
+			if(operands[i] == ',')
+				break;
+			ret += operands[i];
+		}
+		reverse(ret.begin(), ret.end());
+		return DEC :: getInt(ret);
+	}
+	string getCommand(string original)
+	{
+		string reformed = original;
+		if(original.size() && original[0] == '=') reformed = ""; // LITERAL: Case of "	*	=C'EOF'"
+		if(original.size() && original[0] == '+') reformed = original.substr(1), isExtended = true;
+		return reformed;
+	}
+	
+	string getOperandsString(string original)
+	{
+		string reformed = original;
+		
+		if(original.size() && mnemonic != Instruction :: M_MNEMONIC)
+		{
+			if(mnemonic == Instruction :: R1R2_MNEMONIC) destinationRegister = getDestinationRegister(original), sourceRegister = getSourceRegister(original);
+			if(mnemonic == Instruction :: R1_MNEMONIC) destinationRegister = getDestinationRegister(original);
+			if(mnemonic == Instruction :: R1N_MNEMONIC) destinationRegister = getDestinationRegister(original), N = getN(original);
+			if(mnemonic == Instruction :: N_MNEMONIC) N = getN(original);
+			
+			operandsType = Instruction :: FOLLOW_MNEMONIC;
+			
+			return reformed;
+		}
+		if(original.size() && original[0] == '=') original = reformed = original.substr(1), isLiteral = true;
+		if(original.size()>1 && original[0] == 'C' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: CHAR_DATA_OPERAND;
+		if(original.size()>1 && original[0] == 'X' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: HEX_DATA_OPERAND;
+		if(original.size() && original[0] == '#') original = reformed = original.substr(1), isImmediate = true;
+		if(original.size() && original[0] == '@') original = reformed = original.substr(1), isIndirect = true;
+		if(original.size()>1 && original[(int)original.size()-1] == 'X' && original[(int)original.size()-2] == ',') original = reformed = original.substr(0, original.size()-2), isIndexed = true;
+		if(original.size() && original[0] == '*') operandsType = Instruction :: ASTERISK_OPERAND;
+		if(!original.size()) operandsType = Instruction :: EMPTY_OPERAND;
+		
+		if(isNumber(reformed)) operandsType = Instruction :: NUMBER_OPERAND, immediateValue = DEC :: getInt(reformed);
+		else if(isLabel(reformed)) operandsType = Instruction :: LABEL_OPERAND, expressionString = reformed;
+		else operandsType = Instruction :: EXPRESSION_OPERAND, expressionString = reformed;
+		
+		return reformed;
+	}
+	vector<Instruction> parseProgramCode(vector<string> lines)
+	{
+		lines = capitalize(lines);
+		vector<Instruction> instructions;
+		
+		for(int i=0; i<lines.size(); i++)
+		{
+			string label, command, operandsString, opCode;
+			int format;
+			
+			isIndirect = isImmediate = isIndexed = isExtended = isLiteral = false;
+			sourceRegister = "", destinationRegister = "", expressionString = "";
+			expressionEquivilantValue = 0, N = 0, immediateValue = 0;
+			
+			vector<string> tokens = tokenize(lines[i]);
+			
+			label = tokens[0];
+			command = getCommand(tokens[1]); // Triggers the isExtended flag.
+			
+			mnemonic = InstructionSet :: getMnemonic(command);
+			format = InstructionSet :: getFormat(command);
+			opCode = InstructionSet :: getOpCode(command);
+			
+			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
+			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
+			
+			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, immediateValue, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionEquivilantValue, expressionString));
+		}
+	}
+	vector<InstructionSetElement> parseInstructionSet(vector<string> lines)
+	{
+		vector<InstructionSetElement> instructionSet;
+		
+		for(int i=0; i<lines.size(); i++)
+		{
+			string command, opCode, mnemonic;
+			int format;
+			
+			vector<string> tokens = tokenize(lines[i]);
+			
+			command = tokens[0];
+			mnemonic = InstructionSet :: getMnemonicId(tokens[1]);
+			format = tokens[2][0] - '0';
+			opCode = tokens[3];
+			
+			instructionSet.push_back(InstructionSetElement(command, mnemonic, format, opCode));
+		}
 	}
 };
 
@@ -122,89 +317,3 @@ struct Symbol
 	}
 };
 
-class HEX
-{
-	public:
-	static string add(string A, string B)
-	{
-		int a = getInt(A), b = getInt(B);
-		return getString(a+b);
-	}
-	static string subtract(string A, string B)
-	{
-		int a = getInt(A), b = getInt(B);
-		return getString(a-b);
-	}
-	static int getInt(string S)
-	{
-		int len = S.size(), ret = 0, factor = 1;
-		for(int i=len-1; i>=0; i--)
-		{
-			ret += factor * getDigitValue(S[i]);
-			factor *= 16;
-		}
-		return ret;
-	}
-	static int getDigitValue(char c)
-	{
-		if(isdigit(c))return c-'0';
-		return 10 + toupper(c) - 'A';
-	}
-	static string getString(int x)
-	{
-		if(!x)return "0";
-		string ret = "";
-		while(x)
-		{
-			ret += getDigitChar(x%16);
-			x/=16;
-		}
-		reverse(ret.begin(), ret.end());
-		return ret;
-	}
-	static int getDigitChar(int x)
-	{
-		if(x<10)return x + '0';
-		return 'A' + (x-10);
-	}
-};
-
-class DEC
-{
-	public:
-	static string add(string A, string B)
-	{
-		int a = getInt(A), b = getInt(B);
-		return getString(a+b);
-	}
-	static int getInt(string S)
-	{
-		int len = S.size(), ret = 0, factor = 1;
-		for(int i=len-1; i>=0; i--)
-		{
-			ret += factor * getDigitValue(S[i]);
-			factor *= 10;
-		}
-		return ret;
-	}
-	static int getDigitValue(char c)
-	{
-		return c-'0';
-	}
-	static string getString(int x)
-	{
-		if(!x)return "0";
-		string ret = "";
-		while(x)
-		{
-			ret += getDigitChar(x%10);
-			x/=10;
-		}
-		reverse(ret.begin(), ret.end());
-		return ret;
-	}
-	static int getDigitChar(int x)
-	{
-		return x + '0';
-	}
-};

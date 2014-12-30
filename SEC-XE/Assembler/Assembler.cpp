@@ -2,6 +2,7 @@
 using namespace std;
 
 #include "../Shared/shared.cpp"
+#include "../Shared/Common.cpp"
 
 struct Assembler
 {
@@ -11,9 +12,8 @@ struct Assembler
 	
 	Assembler(vector<Instruction> instructions)
 	{
-		vector<string> lines = READER :: scanProgram();
-		PARSER :: run(lines);
-		this -> instructions = PARSER :: getInstructions();
+		vector<string> lines = READER :: scanProgramCode(Common :: ProgramCodeFilePath);
+		this -> instructions = PARSER :: parseProgramCode(lines);;
 		this -> instructionCount = instructions.size();
 		this -> startLocation = PARSER :: getStartLocation();
 		this -> programName = PARSER :: getProgramName();
@@ -29,6 +29,7 @@ struct Assembler
 
 int main()
 {
-	Assembler assembler(getInputCode());
+	InstructionSet :: initialize();
+	Assembler assembler(READER :: getInputCode());
 	assembler.runPass1();
 }
