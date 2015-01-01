@@ -1,4 +1,3 @@
-#include "Common.cpp"
 #include "Numbering.cpp"
 
 struct Instruction
@@ -13,14 +12,14 @@ struct Instruction
 	vector<string> tokens;
 	
 	/* INSTRUCTION INITIAL DATA */
-	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, #105A0, 58
-	int mnemonic, format, operandsType, immediateValue; // Example for corresponding values respectively: the value of R1R2_MNEMONIC which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
+	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, 105A0, 58
+	int mnemonic, format, operandsType; // Example for corresponding values respectively: the value of R1R2_MNEMONIC which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral; // isLiteral is triggered when there is '=' sign in the operands
 	
 	/* INSTRUCTION AUXILIARY DATA */
 	string destinationRegister, sourceRegister; // The registers specified in the operands (if any).
 	int N; // The n which might be accompained with a register, for example in SHIFTR or come alone like in SVC
-	int expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
+	string expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
 	string expressionString; // Expression (as a string) to be executed later to get the target address TA.
 	
 	/* INSTRUCTION PROSESSED DATA (to be processed in pass 1 and 2) */
@@ -31,7 +30,7 @@ struct Instruction
 	// Empty Constructor
 	Instruction(){}
 	// Initial Constructor (used by the parser)
-	Instruction(vector<string> tokens, string label, string command, string operandsString, int mnemonic, int format, string opCode, int operandsType, int immediateValue, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, int expressionEquivilantValue, string expressionString)
+	Instruction(vector<string> tokens, string label, string command, string operandsString, int mnemonic, int format, string opCode, int operandsType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionEquivilantValue, string expressionString)
 	{ 
 		this -> tokens = tokens;
 		this -> label = label;
@@ -41,7 +40,6 @@ struct Instruction
 		this -> format = format;
 		this -> opCode = opCode;
 		this -> operandsType = operandsType;
-		this -> immediateValue = immediateValue;
 		this -> isIndirect = isIndirect;
 		this -> isImmediate = isImmediate;
 		this -> isIndexed = isIndexed;
@@ -72,12 +70,7 @@ class InstructionSetElement
 };
 
 class InstructionSet
-{		// loads the instruction set and provide functions for fetching
-									// opcode, format, number of operands using the symbol of the instruction
-									// exmaple: instance.getFormat("ADD")  returns 3
-									//				instance.getFormat("+ADD")	returns 4
-									//	note : you have to call intialize to load the SIC/XE instruction set
-	public:
+{	public:
 		
 	static vector<InstructionSetElement> instructionSet;
 	
@@ -117,17 +110,11 @@ class InstructionSet
 		}
 		return "-1";
 	}
-	static void initialize()
-	{
-		PARSER p;
-		vector<string> lines = READER :: scan(InstructionSetFilePath);
-		instructionSet = p.parseInstructionSet(lines);
-	}
 };
 
 struct READER
 {
-	static vector<string> scan(string filePath)
+	static vector<string> scanFileLines(string filePath)
 	{
 		freopen(filePath.c_str(), "r", stdin);
 		
@@ -146,7 +133,7 @@ struct PARSER
 	int mnemonic, operandsType, N, immediateValue;
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral;
 	string sourceRegister, destinationRegister, expressionString;
-	int expressionEquivilantValue;
+	string expressionEquivilantValue;
 	
 	vector<string> tokenize(string line)
 	{
@@ -268,7 +255,7 @@ struct PARSER
 			
 			isIndirect = isImmediate = isIndexed = isExtended = isLiteral = false;
 			sourceRegister = "", destinationRegister = "", expressionString = "";
-			expressionEquivilantValue = 0, N = 0, immediateValue = 0;
+			expressionEquivilantValue = "", N = 0;
 			
 			vector<string> tokens = tokenize(lines[i]);
 			
@@ -276,14 +263,15 @@ struct PARSER
 			command = getCommand(tokens[1]); // Triggers the isExtended flag.
 			
 			mnemonic = InstructionSet :: getMnemonic(command);
-			format = InstructionSet :: getFormat(command);
+			format = InstructionSet :: getFormat(command) + isExtended;
 			opCode = InstructionSet :: getOpCode(command);
 			
 			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
 			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
 			
-			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, immediateValue, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionEquivilantValue, expressionString));
+			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionEquivilantValue, expressionString));
 		}
+		return instructions;
 	}
 	vector<InstructionSetElement> parseInstructionSet(vector<string> lines)
 	{

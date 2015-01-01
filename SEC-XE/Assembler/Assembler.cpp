@@ -10,26 +10,36 @@ struct Assembler
 	vector<Instruction> instructions;
 	int instructionCount;
 	
-	Assembler(vector<Instruction> instructions)
+	Assembler()
 	{
-		vector<string> lines = READER :: scanProgramCode(Common :: ProgramCodeFilePath);
-		this -> instructions = PARSER :: parseProgramCode(lines);;
+		PARSER parser;
+		vector<string> lines = READER :: scanFileLines(ProgramCodeFilePath);
+		this -> instructions = parser.parseProgramCode(lines);;
 		this -> instructionCount = instructions.size();
-		this -> startLocation = PARSER :: getStartLocation();
-		this -> programName = PARSER :: getProgramName();
+		this -> startLocation = instructions[0].expressionEquivilantValue;
+		this -> programName = instructions[0].label;
 	}
-
+	void getLocations()
+	{
+		string currentPC = startLocation;
+		for(int i=1; i<instructionCount; i++)
+		{
+			instructions[i].location = currentPC;
+			currentPC = HEX :: add(currentPC, HEX :: getString(instructions[i].format));
+		}
+	}
 	void runPass1()
 	{
-		startLocation = PARSER :: getStartLocation();
-		PARSER :: getLocations();
-		printPass1();
+		getLocations();
 	}
 };
 
 int main()
 {
-	InstructionSet :: initialize();
-	Assembler assembler(READER :: getInputCode());
+	PARSER p;
+	vector<string> lines = READER :: scanFileLines(InstructionSetFilePath);
+	//InstructionSet :: instructionSet = p.parseInstructionSet(lines);
+	
+	Assembler assembler;
 	assembler.runPass1();
 }
