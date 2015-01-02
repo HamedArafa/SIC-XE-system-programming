@@ -63,3 +63,10 @@ WORD	d
 BYTE	d		
 START	m		
 END	m		
+USE			
+EQU			
+EXTDEF			
+EXTREF			
+LTORG			
+ORG			
+CSECT			

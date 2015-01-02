@@ -6,26 +6,17 @@ using namespace std;
 
 struct Assembler
 {
-	vector<InstructionSetElement> instructionSet;
-	string programName, startLocation;
-	vector<Instruction> instructions;
-	int instructionCount;
-	map<string, string> symbolTable;
+	vector<ProgramSection> programSections;
 	
 	Assembler()
 	{
 		PARSER parser;
 		
 		vector<string> lines = READER :: scanFileLines(InstructionSetFilePath);
-		this -> instructionSet = parser.parseInstructionSet(lines);
+		parser.parseInstructionSet(lines);
+		
 		lines = READER :: scanFileLines(ProgramCodeFilePath);
-		this -> instructions = parser.parseProgramCode(lines);
-		
-		this -> instructionCount = instructions.size();
-		
-		if(instructionCount)
-			this -> startLocation = instructions[0].expressionEquivilantValue,
-			this -> programName = instructions[0].label;
+		programSections = parser.parseProgramCode(lines);
 	}
 	string getToAdd(Instruction instruction)
 	{
@@ -65,11 +56,12 @@ struct Assembler
 			zeros += "0";
 		return zeros + s;
 	}
+	/*
 	void printPass1()
 	{
 		for(int i=0; i<instructionCount; i++)
 			printf("%10s %10s %10s %10s %10s\n", leadZeros(instructions[i].location, 4).c_str(), instructions[i].label.c_str(), instructions[i].command.c_str(), instructions[i].tokens[2].c_str(), instructions[i].opCode.c_str());
-	}
+	}*/
 	void runPass1()
 	{
 		getLocations();

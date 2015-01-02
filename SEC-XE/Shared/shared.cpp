@@ -1,5 +1,20 @@
 #include "Numbering.cpp"
 
+struct ProgramSection
+{
+	vector<InstructionSetElement> instructionSet;
+	string programName, startLocation;
+	vector<Instruction> instructions;
+	int instructionCount;
+	map<string, string> symbolTable;
+	
+	this -> instructionCount = instructions.size();
+		
+	if(instructionCount)
+		this -> startLocation = instructions[0].operandsString,
+		this -> programName = instructions[0].label;
+};
+
 struct Instruction
 {
 	/* OPERANDS VALUE TYPES */
@@ -19,14 +34,14 @@ struct Instruction
 	
 	/* INSTRUCTION AUXILIARY DATA */
 	string destinationRegister, sourceRegister; // The registers specified in the operands (if any).
-	int N; // The n which might be accompained with a register, for example in SHIFTR or come alone like in SVC
+	int N; // The n which might be accompanied with a register, for example in SHIFTR or come alone like in SVC
 	string expressionString; // Expression (as a string) to be executed later to get the target address TA.
 	vector<pair<char, string> > expressionTerms;
 	
 	/* INSTRUCTION TO-BE-PROSESSED DATA (to be processed in pass 1 and 2) */
 	string location, objectCode;
 	bool baseRelative, PCRelative;
-	string expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
+	string expressionEquivalentValue; // The equivalent value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
 	
 	/* INSTRUCTION CONSTRUCTORS */
 	// Empty Constructor
