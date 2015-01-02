@@ -10,6 +10,7 @@ struct Assembler
 	string programName, startLocation;
 	vector<Instruction> instructions;
 	int instructionCount;
+	map<string, string> symbolTable;
 	
 	Assembler()
 	{
@@ -80,4 +81,5 @@ int main()
 	Assembler assembler;
 	assembler.runPass1();
 	assembler.printPass1();
+	
 }

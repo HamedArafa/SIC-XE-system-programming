@@ -12,6 +12,7 @@ struct Instruction
 	vector<string> tokens;
 	
 	/* INSTRUCTION INITIAL DATA */
+	string originalLabel, originalCommand, originalOperandsString;
 	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, 105A0, 58
 	int mnemonic, format, operandsType; // Example for corresponding values respectively: the value of R1R2_MNEMONIC which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral; // isLiteral is triggered when there is '=' sign in the operands
@@ -19,20 +20,25 @@ struct Instruction
 	/* INSTRUCTION AUXILIARY DATA */
 	string destinationRegister, sourceRegister; // The registers specified in the operands (if any).
 	int N; // The n which might be accompained with a register, for example in SHIFTR or come alone like in SVC
-	string expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
 	string expressionString; // Expression (as a string) to be executed later to get the target address TA.
+	vector<pair<char, string> > expressionTerms;
 	
-	/* INSTRUCTION PROSESSED DATA (to be processed in pass 1 and 2) */
+	/* INSTRUCTION TO-BE-PROSESSED DATA (to be processed in pass 1 and 2) */
 	string location, objectCode;
 	bool baseRelative, PCRelative;
+	string expressionEquivilantValue; // The equivilant value of the expression in the operands, for example: LENGTH-INF-(ZERO-ALPHA). TO BE DONE
 	
 	/* INSTRUCTION CONSTRUCTORS */
 	// Empty Constructor
 	Instruction(){}
 	// Initial Constructor (used by the parser)
-	Instruction(vector<string> tokens, string label, string command, string operandsString, int mnemonic, int format, string opCode, int operandsType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionEquivilantValue, string expressionString)
+	Instruction(vector<string> tokens, string label, string command, string operandsString, int mnemonic, int format, string opCode, int operandsType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionString, vector<pair<char, string> > expressionTerms)
 	{ 
 		this -> tokens = tokens;
+		this -> originalLabel = tokens[0];
+		this -> originalCommand = tokens[1];
+		this -> originalOperandsString = tokens[2];
+		
 		this -> label = label;
 		this -> command = command;
 		this -> operandsString = operandsString;
@@ -48,7 +54,7 @@ struct Instruction
 		this -> destinationRegister = destinationRegister;
 		this -> sourceRegister = sourceRegister;
 		this -> N = N;
-		this -> expressionEquivilantValue = expressionEquivilantValue;
+		this -> expressionTerms = expressionTerms;
 		this -> expressionString = expressionString;
 	}
 };
@@ -134,11 +140,7 @@ struct READER
 
 struct PARSER
 {
-	int mnemonic, operandsType, N;
-	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral;
-	string sourceRegister, destinationRegister, expressionString;
-	string expressionEquivilantValue;
-	
+	/* PARSING HELPING FUNCTIONS */
 	vector<string> tokenize(string line)
 	{
 		line += '\t';
@@ -171,7 +173,13 @@ struct PARSER
 		return 1;
 	}
 	
-	string getDestinationRegister(string operands)
+	int mnemonic, operandsType, N;
+	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral;
+	string sourceRegister, destinationRegister, expressionString;
+	vector<pair<char, string> > expressionTerms;
+	
+	/* GETTERS */
+	string getSourceRegister(string operands)
 	{
 		string ret = "";
 		for(int i=0; i<operands.size(); i++)
@@ -182,7 +190,7 @@ struct PARSER
 		}
 		return ret;
 	}
-	string getSourceRegister(string operands)
+	string getDestinationRegister(string operands)
 	{
 		int i;
 		for(i=0; i<operands.size(); i++)
@@ -239,9 +247,10 @@ struct PARSER
 		
 		return reformed;
 	}
-	string getExpressionEquivilantValue(string original) ///////////////////////////////////////////////////// TBD
+	
+	vector<pair<char, string> > getExpressionTerms(string expressionString)
 	{
-		return original;
+		
 	}
 	vector<Instruction> parseProgramCode(vector<string> lines)
 	{
@@ -251,11 +260,12 @@ struct PARSER
 		for(int i=0; i<lines.size(); i++)
 		{
 			string label, command, operandsString, opCode;
-			int format;
+			int format = -1;
 			
+			mnemonic = Instruction :: EMPTY_MNEMONIC, operandsType = Instruction :: EMPTY_OPERAND, N = 0;
 			isIndirect = isImmediate = isIndexed = isExtended = isLiteral = false;
 			sourceRegister = "", destinationRegister = "", expressionString = "";
-			expressionEquivilantValue = "", N = 0;
+			expressionTerms.clear();
 			
 			vector<string> tokens = tokenize(lines[i]);
 			
@@ -268,16 +278,14 @@ struct PARSER
 			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
 			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
 			
-			if(expressionString.size()) expressionEquivilantValue = getExpressionEquivilantValue(expressionString);
+			if(expressionString.size() && operandsType == Instruction :: EXPRESSION_OPERAND) expressionTerms = getExpressionTerms(expressionString);
 			
-			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionEquivilantValue, expressionString));
+			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
 		}
 		return instructions;
 	}
 	vector<InstructionSetElement> parseInstructionSet(vector<string> lines)
 	{
-		//vector<InstructionSetElement> instructionSet;
-		
 		for(int i=0; i<lines.size(); i++)
 		{
 			string command, opCode, mnemonicString;
