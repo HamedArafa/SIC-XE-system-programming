@@ -7,6 +7,7 @@ using namespace std;
 struct Assembler
 {
 	vector<ProgramSection> programSections;
+	string entryPoint;
 	
 	Assembler()
 	{
@@ -16,7 +17,9 @@ struct Assembler
 		parser.parseInstructionSet(lines);
 		
 		lines = READER :: scanFileLines(ProgramCodeFilePath);
-		programSections = parser.parseProgramCode(lines);
+		pair<vector<ProgramSection>, string> parsedProgramCode = parser.parseProgramCode(lines);
+		this -> programSections = parsedProgramCode.first;
+		this -> entryPoint = parsedProgramCode.second;
 	}
 	string getToAdd(Instruction instruction)
 	{
@@ -28,10 +31,10 @@ struct Assembler
 				return HEX::getString(DEC::getInt(instruction.operandsString));
 			if(instruction.command == "BYTE")
 			{
-				if(instruction.operandsType == Instruction :: CHAR_DATA_OPERAND)
+				if(instruction.operandsType == Instruction :: CHAR_DATA_OPERAND_VALUE)
 					return HEX::getString(instruction.operandsString.size());
 				
-				if(instruction.operandsType == Instruction :: HEX_DATA_OPERAND)
+				if(instruction.operandsType == Instruction :: HEX_DATA_OPERAND_VALUE)
 					return HEX::getString(instruction.operandsString.size()/2 + instruction.operandsString.size()%2);
 			}
 			if(instruction.command == "WORD") return "3";
@@ -41,12 +44,12 @@ struct Assembler
 	}
 	void getLocations()
 	{
-		string currentPC = startLocation;
+		/*string currentPC = startLocation;
 		for(int i=1; i<instructionCount; i++)
 		{
 			instructions[i].location = currentPC;
 			currentPC = HEX :: add(currentPC, getToAdd(instructions[i]));
-		}
+		}*/
 	}
 	string leadZeros(string s, int length)
 	{
@@ -72,6 +75,6 @@ int main()
 {
 	Assembler assembler;
 	assembler.runPass1();
-	assembler.printPass1();
+	//assembler.printPass1();
 	
 }

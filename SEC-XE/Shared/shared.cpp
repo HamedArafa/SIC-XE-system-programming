@@ -1,27 +1,12 @@
 #include "Numbering.cpp"
 
-struct ProgramSection
-{
-	vector<InstructionSetElement> instructionSet;
-	string programName, startLocation;
-	vector<Instruction> instructions;
-	int instructionCount;
-	map<string, string> symbolTable;
-	
-	this -> instructionCount = instructions.size();
-		
-	if(instructionCount)
-		this -> startLocation = instructions[0].operandsString,
-		this -> programName = instructions[0].label;
-};
-
 struct Instruction
 {
 	/* OPERANDS VALUE TYPES */
-	static const int FOLLOW_MNEMONIC = 1, EXPRESSION_OPERAND = 2, CHAR_DATA_OPERAND = 3, HEX_DATA_OPERAND = 4, NUMBER_OPERAND = 5, ASTERISK_OPERAND = 6, EMPTY_OPERAND = 7;
+	static const int FOLLOW_OPERAND_STYLE = 1, EXPRESSION_OPERAND_VALUE = 2, CHAR_DATA_OPERAND_VALUE = 3, HEX_DATA_OPERAND_VALUE = 4, NUMBER_OPERAND_VALUE = 5, ASTERISK_OPERAND_VALUE = 6, EMPTY_OPERAND_VALUE = 7;
 	
 	/* MNEMONIC TYPES */
-	static const int D_MNEMONIC = 0, M_MNEMONIC = 1, R1R2_MNEMONIC = 2, R1_MNEMONIC = 3,  R1N_MNEMONIC = 4, N_MNEMONIC = 5, EMPTY_MNEMONIC = 6;
+	static const int D_OPERAND_STYLE = 0, M_OPERAND_STYLE = 1, R1R2_OPERAND_STYLE = 2, R1_OPERAND_STYLE = 3,  R1N_OPERAND_STYLE = 4, N_OPERAND_STYLE = 5, EMPTY_OPERAND_STYLE = 6;
 	
 	/* INSTRUCTION ORIGINAL DATA FORMAT */
 	vector<string> tokens;
@@ -29,7 +14,7 @@ struct Instruction
 	/* INSTRUCTION INITIAL DATA */
 	string originalLabel, originalCommand, originalOperandsString;
 	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, 105A0, 58
-	int mnemonic, format, operandsType; // Example for corresponding values respectively: the value of R1R2_MNEMONIC which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
+	int mnemonic, format, operandsType; // Example for corresponding values respectively: the value of R1R2_OPERAND_STYLE which corresponds to the mnemonic (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral; // isLiteral is triggered when there is '=' sign in the operands
 	
 	/* INSTRUCTION AUXILIARY DATA */
@@ -74,6 +59,30 @@ struct Instruction
 	}
 };
 
+struct ProgramSection
+{
+	string programName, startLocation;
+	vector<Instruction> instructions;
+	int instructionCount;
+	map<string, string> symbolTable;
+	
+	ProgramSection(string programName)
+	{
+		this -> programName = programName;
+	}
+	ProgramSection(vector<Instruction> instructions, map<string, string> symbolTable)
+	{
+		this -> instructions = instructions;
+		this -> instructionCount = instructions.size();
+		
+		if(instructionCount)
+			this -> startLocation = instructions[0].operandsString,
+			this -> programName = instructions[0].label;
+		
+		this -> symbolTable = symbolTable;
+	}
+};
+
 class InstructionSetElement
 {
 	public:
@@ -95,16 +104,15 @@ class InstructionSet
 	
 	static vector<InstructionSetElement> instructionSet;
 	
-	
 	static int getMnemonicId(string mnemonic)
 	{
-		if(mnemonic == "d") return Instruction :: D_MNEMONIC;
-		if(mnemonic == "m") return Instruction :: M_MNEMONIC;
-		if(mnemonic == "r1,r2") return Instruction :: R1R2_MNEMONIC;
-		if(mnemonic == "r1") return Instruction :: R1_MNEMONIC;
-		if(mnemonic == "r1,n") return Instruction :: R1N_MNEMONIC;
-		if(mnemonic == "n") return Instruction :: N_MNEMONIC;
-		return Instruction :: EMPTY_MNEMONIC;
+		if(mnemonic == "d") return Instruction :: D_OPERAND_STYLE;
+		if(mnemonic == "m") return Instruction :: M_OPERAND_STYLE;
+		if(mnemonic == "r1,r2") return Instruction :: R1R2_OPERAND_STYLE;
+		if(mnemonic == "r1") return Instruction :: R1_OPERAND_STYLE;
+		if(mnemonic == "r1,n") return Instruction :: R1N_OPERAND_STYLE;
+		if(mnemonic == "n") return Instruction :: N_OPERAND_STYLE;
+		return Instruction :: EMPTY_OPERAND_STYLE;
 	}
 	static int getMnemonic(string command)
 	{
@@ -113,7 +121,7 @@ class InstructionSet
 				return getMnemonicId(instructionSet[i].mnemonic);
 			}
 		}
-		return Instruction :: EMPTY_MNEMONIC;
+		return Instruction :: EMPTY_OPERAND_STYLE;
 	}
 	static int getFormat(string command)
 	{
@@ -134,7 +142,6 @@ class InstructionSet
 		return "-1";
 	}
 };
-
 vector<InstructionSetElement> InstructionSet::instructionSet;
 
 struct READER
@@ -237,14 +244,14 @@ struct PARSER
 	{
 		string reformed = original;
 		
-		if(original.size() && mnemonic != Instruction :: M_MNEMONIC && mnemonic != Instruction :: D_MNEMONIC)
+		if(original.size() && mnemonic != Instruction :: M_OPERAND_STYLE && mnemonic != Instruction :: D_OPERAND_STYLE)
 		{
-			if(mnemonic == Instruction :: R1R2_MNEMONIC) destinationRegister = getDestinationRegister(original), sourceRegister = getSourceRegister(original);
-			if(mnemonic == Instruction :: R1_MNEMONIC) destinationRegister = getDestinationRegister(original);
-			if(mnemonic == Instruction :: R1N_MNEMONIC) destinationRegister = getDestinationRegister(original), N = getN(original);
-			if(mnemonic == Instruction :: N_MNEMONIC) N = getN(original);
+			if(mnemonic == Instruction :: R1R2_OPERAND_STYLE) destinationRegister = getDestinationRegister(original), sourceRegister = getSourceRegister(original);
+			if(mnemonic == Instruction :: R1_OPERAND_STYLE) destinationRegister = getDestinationRegister(original);
+			if(mnemonic == Instruction :: R1N_OPERAND_STYLE) destinationRegister = getDestinationRegister(original), N = getN(original);
+			if(mnemonic == Instruction :: N_OPERAND_STYLE) N = getN(original);
 			
-			operandsType = Instruction :: FOLLOW_MNEMONIC;
+			operandsType = Instruction :: FOLLOW_OPERAND_STYLE;
 			
 			return reformed;
 		}
@@ -253,12 +260,12 @@ struct PARSER
 		if(original.size() && original[0] == '#') original = reformed = original.substr(1), isImmediate = true;
 		if(original.size() && original[0] == '@') original = reformed = original.substr(1), isIndirect = true;
 		
-		if(original.size() && original[0] == '*') operandsType = Instruction :: ASTERISK_OPERAND;
-		else if(!original.size()) operandsType = Instruction :: EMPTY_OPERAND;
-		else if(original.size()>1 && original[0] == 'C' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: CHAR_DATA_OPERAND;
-		else if(original.size()>1 && original[0] == 'X' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: HEX_DATA_OPERAND;
-		else if(isNumber(reformed)) operandsType = Instruction :: NUMBER_OPERAND, expressionString = reformed;
-		else operandsType = Instruction :: EXPRESSION_OPERAND, expressionString = reformed;
+		if(original.size() && original[0] == '*') operandsType = Instruction :: ASTERISK_OPERAND_VALUE;
+		else if(!original.size()) operandsType = Instruction :: EMPTY_OPERAND_VALUE;
+		else if(original.size()>1 && original[0] == 'C' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: CHAR_DATA_OPERAND_VALUE;
+		else if(original.size()>1 && original[0] == 'X' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: HEX_DATA_OPERAND_VALUE;
+		else if(isNumber(reformed)) operandsType = Instruction :: NUMBER_OPERAND_VALUE, expressionString = reformed;
+		else operandsType = Instruction :: EXPRESSION_OPERAND_VALUE, expressionString = reformed;
 		
 		return reformed;
 	}
@@ -267,17 +274,22 @@ struct PARSER
 	{
 		
 	}
-	vector<Instruction> parseProgramCode(vector<string> lines)
+	pair<vector<ProgramSection>, string> parseProgramCode(vector<string> lines)
 	{
+		vector<ProgramSection> programSections;
+		string entryPoint;
+		
+		map<string, int> programSectionIndex;
 		lines = capitalize(lines);
-		vector<Instruction> instructions;
+		string currentProgramSectionName;
+		string mainProgramSectionName;
 		
 		for(int i=0; i<lines.size(); i++)
 		{
 			string label, command, operandsString, opCode;
 			int format = -1;
 			
-			mnemonic = Instruction :: EMPTY_MNEMONIC, operandsType = Instruction :: EMPTY_OPERAND, N = 0;
+			mnemonic = Instruction :: EMPTY_OPERAND_STYLE, operandsType = Instruction :: EMPTY_OPERAND_VALUE, N = 0;
 			isIndirect = isImmediate = isIndexed = isExtended = isLiteral = false;
 			sourceRegister = "", destinationRegister = "", expressionString = "";
 			expressionTerms.clear();
@@ -286,6 +298,7 @@ struct PARSER
 			
 			label = tokens[0];
 			command = getCommand(tokens[1]); // Triggers the isExtended flag.
+			
 			mnemonic = InstructionSet :: getMnemonic(command);
 			format = InstructionSet :: getFormat(command) + isExtended;
 			opCode = InstructionSet :: getOpCode(command);
@@ -293,13 +306,27 @@ struct PARSER
 			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
 			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
 			
-			if(expressionString.size() && operandsType == Instruction :: EXPRESSION_OPERAND) expressionTerms = getExpressionTerms(expressionString);
+			if(expressionString.size() && operandsType == Instruction :: EXPRESSION_OPERAND_VALUE) expressionTerms = getExpressionTerms(expressionString);
 			
-			instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
+			if(command == "END") entryPoint = operandsString;
+			else if(command == "START") mainProgramSectionName = currentProgramSectionName = label;
+			else if(command == "USE")
+			{
+				if(operandsString.size()) currentProgramSectionName = operandsString;
+				else currentProgramSectionName = mainProgramSectionName;
+			}
+			else if(command == "CSECT") currentProgramSectionName = label;
+			
+			if(!programSectionIndex.count(currentProgramSectionName))
+			{
+				programSectionIndex[currentProgramSectionName] = programSections.size();
+				programSections.push_back(ProgramSection(currentProgramSectionName));
+			}
+			else if(command != "END" && command != "START" && command != "USE" && command != "CSECT") programSections[programSectionIndex[currentProgramSectionName]].instructions.push_back(Instruction(tokens, label, command, operandsString, mnemonic, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
 		}
-		return instructions;
+		return make_pair(programSections, entryPoint);
 	}
-	vector<InstructionSetElement> parseInstructionSet(vector<string> lines)
+	void parseInstructionSet(vector<string> lines)
 	{
 		for(int i=0; i<lines.size(); i++)
 		{
@@ -315,7 +342,7 @@ struct PARSER
 			
 			InstructionSet :: instructionSet.push_back(InstructionSetElement(command, mnemonicString, format, opCode));
 		}
-		return InstructionSet :: instructionSet;
+		return;
 	}
 };
 
