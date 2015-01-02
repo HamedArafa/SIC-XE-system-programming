@@ -68,58 +68,53 @@ class InstructionSetElement
 		this -> opCode = opCode;
 	}
 };
-/*
+
 class InstructionSet
 {	public:
-		
+	
+	static vector<InstructionSetElement> instructionSet;
 	
 	
-	static int getMnemonicId(string);
-	static int getMnemonic(string);
-	static int getFormat(string);
-	static string getOpCode(string);
+	static int getMnemonicId(string mnemonic)
+	{
+		if(mnemonic == "d") return Instruction :: D_MNEMONIC;
+		if(mnemonic == "m") return Instruction :: M_MNEMONIC;
+		if(mnemonic == "r1,r2") return Instruction :: R1R2_MNEMONIC;
+		if(mnemonic == "r1") return Instruction :: R1_MNEMONIC;
+		if(mnemonic == "r1,n") return Instruction :: R1N_MNEMONIC;
+		if(mnemonic == "n") return Instruction :: N_MNEMONIC;
+		return Instruction :: EMPTY_MNEMONIC;
+	}
+	static int getMnemonic(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return getMnemonicId(instructionSet[i].mnemonic);
+			}
+		}
+		return Instruction :: EMPTY_MNEMONIC;
+	}
+	static int getFormat(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return instructionSet[i].format;
+			}
+		}
+		return -1;
+	}
+	static string getOpCode(string command)
+	{
+		for (int i=0;i<instructionSet.size();i++){
+			if (command == instructionSet[i].command){
+				return instructionSet[i].opCode;
+			}
+		}
+		return "-1";
+	}
 };
-*/
 
-vector<InstructionSetElement> instructionSet;
-
-static int getMnemonicId(string mnemonic)
-{
-	if(mnemonic == "d") return Instruction :: D_MNEMONIC;
-	if(mnemonic == "m") return Instruction :: M_MNEMONIC;
-	if(mnemonic == "r1,r2") return Instruction :: R1R2_MNEMONIC;
-	if(mnemonic == "r1") return Instruction :: R1_MNEMONIC;
-	if(mnemonic == "r1,n") return Instruction :: R1N_MNEMONIC;
-	if(mnemonic == "n") return Instruction :: N_MNEMONIC;
-	return Instruction :: EMPTY_MNEMONIC;
-}
-static int getMnemonic(string command)
-{
-	for (int i=0;i<instructionSet.size();i++){
-		if (command == instructionSet[i].command){
-			return getMnemonicId(instructionSet[i].mnemonic);
-		}
-	}
-	return Instruction :: EMPTY_MNEMONIC;
-}
-static int getFormat(string command)
-{
-	for (int i=0;i<instructionSet.size();i++){
-		if (command == instructionSet[i].command){
-			return instructionSet[i].format;
-		}
-	}
-	return -1;
-}
-static string getOpCode(string command)
-{
-	for (int i=0;i<instructionSet.size();i++){
-		if (command == instructionSet[i].command){
-			return instructionSet[i].opCode;
-		}
-	}
-	return "-1";
-}
+vector<InstructionSetElement> InstructionSet::instructionSet;
 
 struct READER
 {
@@ -266,9 +261,9 @@ struct PARSER
 			
 			label = tokens[0];
 			command = getCommand(tokens[1]); // Triggers the isExtended flag.
-			mnemonic = getMnemonic(command);
-			format = getFormat(command) + isExtended;
-			opCode = getOpCode(command);
+			mnemonic = InstructionSet :: getMnemonic(command);
+			format = InstructionSet :: getFormat(command) + isExtended;
+			opCode = InstructionSet :: getOpCode(command);
 			
 			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
 			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
@@ -295,9 +290,9 @@ struct PARSER
 			if(tokens[2].size()) format = tokens[2][0] - '0';
 			opCode = tokens[3];
 			
-			instructionSet.push_back(InstructionSetElement(command, mnemonicString, format, opCode));
+			InstructionSet :: instructionSet.push_back(InstructionSetElement(command, mnemonicString, format, opCode));
 		}
-		return instructionSet;
+		return InstructionSet :: instructionSet;
 	}
 };
 

@@ -67,12 +67,11 @@ struct Assembler
 	void printPass1()
 	{
 		for(int i=0; i<instructionCount; i++)
-			printf("%10s %10s %10s %10s\n", leadZeros(instructions[i].location, 4).c_str(), instructions[i].label.c_str(), instructions[i].command.c_str(), instructions[i].tokens[2].c_str());
+			printf("%10s %10s %10s %10s %10s\n", leadZeros(instructions[i].location, 4).c_str(), instructions[i].label.c_str(), instructions[i].command.c_str(), instructions[i].tokens[2].c_str(), instructions[i].opCode.c_str());
 	}
 	void runPass1()
 	{
 		getLocations();
-		printPass1();
 	}
 };
 
@@ -80,4 +79,5 @@ int main()
 {
 	Assembler assembler;
 	assembler.runPass1();
+	assembler.printPass1();
 }
