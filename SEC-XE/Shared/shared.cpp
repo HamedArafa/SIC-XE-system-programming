@@ -14,7 +14,7 @@ struct Instruction
 	/* INSTRUCTION INITIAL DATA */
 	string originalLabel, originalCommand, originalOperandsString;
 	string label, command, operandsString, opCode; // Example for corresponding values respectively: ALPHA, LDA, 105A0, 58
-	int operandsStyle, format, operandsType; // Example for corresponding values respectively: the value of R1R2_OPERAND_STYLE which corresponds to the operandsStyle (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
+	int operandsStyle, format, operandsValueType; // Example for corresponding values respectively: the value of R1R2_OPERAND_STYLE which corresponds to the operandsStyle (r1,r2), 2 (i.e. format of the instruction is 2), one of the specified constants at the top which corresponds to the type of value in the operandsString
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral; // isLiteral is triggered when there is '=' sign in the operands
 	
 	/* INSTRUCTION AUXILIARY DATA */
@@ -32,7 +32,7 @@ struct Instruction
 	// Empty Constructor
 	Instruction(){}
 	// Initial Constructor (used by the parser)
-	Instruction(vector<string> tokens, string label, string command, string operandsString, int operandsStyle, int format, string opCode, int operandsType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionString, vector<pair<char, string> > expressionTerms)
+	Instruction(vector<string> tokens, string label, string command, string operandsString, int operandsStyle, int format, string opCode, int operandsValueType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionString, vector<pair<char, string> > expressionTerms)
 	{ 
 		this -> tokens = tokens;
 		this -> originalLabel = tokens[0];
@@ -45,7 +45,7 @@ struct Instruction
 		this -> operandsStyle = operandsStyle;
 		this -> format = format;
 		this -> opCode = opCode;
-		this -> operandsType = operandsType;
+		this -> operandsValueType = operandsValueType;
 		this -> isIndirect = isIndirect;
 		this -> isImmediate = isImmediate;
 		this -> isIndexed = isIndexed;
@@ -59,7 +59,8 @@ struct Instruction
 	}
 	void print()
 	{
-		printf("location:%8s label:%8s command:%8s operandsString:%8s opCode:%4s operandsStyle:%d format:%d isIndirect:%d isImmediate:%d isIndexed:%d isExtended:%d isLiteral:%d sourceRegister:%s destinationRegister:%s N:%d expressionString:%s\n", location.c_str(), label.c_str(), command.c_str(), operandsString.c_str(), opCode.c_str(), operandsStyle, format, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, sourceRegister.c_str(), destinationRegister.c_str(), N, expressionString.c_str());
+		//printf("location:%8s ", location.c_str());
+		printf("label:%8s command:%8s opCode:%4s operandsString:%8s operandsValueType:%d operandsStyle:%d format:%d n:%d i:%d x:%d e:%d l:%d sR:%s dR:%s N:%d expressionString:%s\n", label.c_str(), command.c_str(), opCode.c_str(), operandsString.c_str(), operandsValueType, operandsStyle, format, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, sourceRegister.c_str(), destinationRegister.c_str(), N, expressionString.c_str());
 	}
 };
 
@@ -67,22 +68,20 @@ struct ProgramSection
 {
 	string programName, startLocation;
 	vector<Instruction> instructions;
-	int instructionCount;
 	map<string, string> symbolTable;
 	
-	ProgramSection(string programName)
+	ProgramSection(string programName, string startLocation)
 	{
 		this -> programName = programName;
+		this -> startLocation = startLocation;
+		instructions.clear();
+		symbolTable.clear();
 	}
-	ProgramSection(vector<Instruction> instructions, map<string, string> symbolTable)
+	ProgramSection(string programName, string startLocation, vector<Instruction> instructions, map<string, string> symbolTable)
 	{
+		this -> programName = programName;
+		this -> startLocation = startLocation;
 		this -> instructions = instructions;
-		this -> instructionCount = instructions.size();
-		
-		if(instructionCount)
-			this -> startLocation = instructions[0].operandsString,
-			this -> programName = instructions[0].label;
-		
 		this -> symbolTable = symbolTable;
 	}
 };
@@ -158,7 +157,8 @@ struct READER
 		char line[100001];
 		
 		while(gets(line))
-			lines.push_back(line);
+			if(strlen(line))
+				lines.push_back(line);
 		
 		return lines;
 	}
@@ -195,11 +195,11 @@ struct PARSER
 	bool isNumber(string s)
 	{
 		for(int i=0; i<s.size(); i++)
-			if(!isdigit(s[i]) && (s[i]<'A' || s[i]>'F')) return 0;
+			if(!isdigit(s[i])) return 0;
 		return 1;
 	}
 	
-	int operandsStyle, operandsType, N;
+	int operandsStyle, operandsValueType, N;
 	bool isIndirect, isImmediate, isIndexed, isExtended, isLiteral;
 	string sourceRegister, destinationRegister, expressionString;
 	vector<pair<char, string> > expressionTerms;
@@ -251,11 +251,11 @@ struct PARSER
 		if(original.size() && operandsStyle != Instruction :: M_OPERAND_STYLE && operandsStyle != Instruction :: D_OPERAND_STYLE)
 		{
 			if(operandsStyle == Instruction :: R1R2_OPERAND_STYLE) destinationRegister = getDestinationRegister(original), sourceRegister = getSourceRegister(original);
-			if(operandsStyle == Instruction :: R1_OPERAND_STYLE) destinationRegister = getDestinationRegister(original);
+			if(operandsStyle == Instruction :: R1_OPERAND_STYLE) sourceRegister = getSourceRegister(original);
 			if(operandsStyle == Instruction :: R1N_OPERAND_STYLE) destinationRegister = getDestinationRegister(original), N = getN(original);
 			if(operandsStyle == Instruction :: N_OPERAND_STYLE) N = getN(original);
 			
-			operandsType = Instruction :: FOLLOW_OPERAND_STYLE;
+			operandsValueType = Instruction :: FOLLOW_OPERAND_STYLE;
 			
 			return reformed;
 		}
@@ -264,12 +264,12 @@ struct PARSER
 		if(original.size() && original[0] == '#') original = reformed = original.substr(1), isImmediate = true;
 		if(original.size() && original[0] == '@') original = reformed = original.substr(1), isIndirect = true;
 		
-		if(original.size() && original[0] == '*') operandsType = Instruction :: ASTERISK_OPERAND_VALUE;
-		else if(!original.size()) operandsType = Instruction :: EMPTY_OPERAND_VALUE;
-		else if(original.size()>1 && original[0] == 'C' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: CHAR_DATA_OPERAND_VALUE;
-		else if(original.size()>1 && original[0] == 'X' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsType = Instruction :: HEX_DATA_OPERAND_VALUE;
-		else if(isNumber(reformed)) operandsType = Instruction :: NUMBER_OPERAND_VALUE, expressionString = reformed;
-		else operandsType = Instruction :: EXPRESSION_OPERAND_VALUE, expressionString = reformed;
+		if(original.size() && original[0] == '*') operandsValueType = Instruction :: ASTERISK_OPERAND_VALUE;
+		else if(!original.size()) operandsValueType = Instruction :: EMPTY_OPERAND_VALUE;
+		else if(original.size()>1 && original[0] == 'C' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsValueType = Instruction :: CHAR_DATA_OPERAND_VALUE;
+		else if(original.size()>1 && original[0] == 'X' && original[1] == '\'') original = reformed = original.substr(2, (int)original.size()-3), operandsValueType = Instruction :: HEX_DATA_OPERAND_VALUE;
+		else if(isNumber(reformed)) operandsValueType = Instruction :: NUMBER_OPERAND_VALUE;
+		else operandsValueType = Instruction :: EXPRESSION_OPERAND_VALUE, expressionString = reformed;
 		
 		return reformed;
 	}
@@ -290,14 +290,15 @@ struct PARSER
 		map<string, int> programSectionIndex;
 		lines = capitalize(lines);
 		string currentProgramSectionName;
-		string mainProgramSectionName;
+		string defaultProgramSectionName;
+		string startLocation;
 		
 		for(int i=0; i<lines.size(); i++)
 		{
 			string label, command, operandsString, opCode;
 			int format = -1;
 			
-			operandsStyle = Instruction :: EMPTY_OPERAND_STYLE, operandsType = Instruction :: EMPTY_OPERAND_VALUE, N = 0;
+			operandsStyle = Instruction :: EMPTY_OPERAND_STYLE, operandsValueType = Instruction :: EMPTY_OPERAND_VALUE, N = 0;
 			isIndirect = isImmediate = isIndexed = isExtended = isLiteral = false;
 			sourceRegister = "", destinationRegister = "", expressionString = "";
 			expressionTerms.clear();
@@ -314,29 +315,38 @@ struct PARSER
 			if(tokens[1][0] == '=') operandsString = getOperandsString(tokens[1]);
 			else operandsString = getOperandsString(tokens[2]); // Triggers the isIndexed, isIndirect, isImmediate and isLiteral flags.
 			
-			if(expressionString.size() && operandsType == Instruction :: EXPRESSION_OPERAND_VALUE) expressionTerms = getExpressionTerms(expressionString);
+			if(expressionString.size() && operandsValueType == Instruction :: EXPRESSION_OPERAND_VALUE) expressionTerms = getExpressionTerms(expressionString);
+			
+			//////////////
+			
+			startLocation = "0";
 			
 			if(command == "END") entryPoint = operandsString;
-			else if(command == "START") mainProgramSectionName = currentProgramSectionName = label;
+			else if(command == "START")
+			{
+				defaultProgramSectionName = currentProgramSectionName = label;
+				startLocation = operandsString;
+			}
 			else if(command == "USE")
 			{
 				if(operandsString.size()) currentProgramSectionName = operandsString;
-				else currentProgramSectionName = mainProgramSectionName;
+				else currentProgramSectionName = defaultProgramSectionName;
 			}
 			else if(command == "CSECT") currentProgramSectionName = label;
 			
 			if(!programSectionIndex.count(currentProgramSectionName))
 			{
 				programSectionIndex[currentProgramSectionName] = programSections.size();
-				programSections.push_back(ProgramSection(currentProgramSectionName));
+				programSections.push_back(ProgramSection(currentProgramSectionName, startLocation));
 			}
 			
-			if(command != "END" && command != "START" && command != "USE" && command != "CSECT") programSections[programSectionIndex[currentProgramSectionName]].instructions.push_back(Instruction(tokens, label, command, operandsString, operandsStyle, format, opCode, operandsType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
+			if(command != "END" && command != "START" && command != "USE" && command != "CSECT")
+				programSections[programSectionIndex[currentProgramSectionName]].instructions.push_back(Instruction(tokens, label, command, operandsString, operandsStyle, format, opCode, operandsValueType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
 		}
 		
 		for(int i=0; i<programSections.size(); i++)
 		{
-			printf("PROGRAM NUMBER #%d: \n",i);
+			printf("PROGRAM NUMBER #%d [instructionsCount:%d] with startLocation:%s and programName:%s \n", i, programSections[i].instructions.size(), programSections[i].startLocation.c_str(), programSections[i].programName.c_str());
 			
 			for(int j=0; j<programSections[i].instructions.size(); j++)
 			{

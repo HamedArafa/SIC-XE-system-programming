@@ -31,10 +31,10 @@ struct Assembler
 				return HEX::getString(DEC::getInt(instruction.operandsString));
 			if(instruction.command == "BYTE")
 			{
-				if(instruction.operandsType == Instruction :: CHAR_DATA_OPERAND_VALUE)
+				if(instruction.operandsValueType == Instruction :: CHAR_DATA_OPERAND_VALUE)
 					return HEX::getString(instruction.operandsString.size());
 				
-				if(instruction.operandsType == Instruction :: HEX_DATA_OPERAND_VALUE)
+				if(instruction.operandsValueType == Instruction :: HEX_DATA_OPERAND_VALUE)
 					return HEX::getString(instruction.operandsString.size()/2 + instruction.operandsString.size()%2);
 			}
 			if(instruction.command == "WORD") return "3";
