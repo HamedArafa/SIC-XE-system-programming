@@ -43,6 +43,14 @@ class HEX
 		if(x<10)return x + '0';
 		return 'A' + (x-10);
 	}
+	static string leadZeros(string s, int length)
+	{
+		string zeros;
+		length = length - s.size();
+		while(length-->0)
+			zeros += "0";
+		return zeros + s;
+	}
 };
 
 class DEC

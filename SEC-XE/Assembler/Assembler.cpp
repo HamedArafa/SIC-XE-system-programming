@@ -44,27 +44,30 @@ struct Assembler
 	}
 	void getLocations()
 	{
-		/*string currentPC = startLocation;
-		for(int i=1; i<instructionCount; i++)
+		for(int p=0; p<programSections.size(); p++)
 		{
-			instructions[i].location = currentPC;
-			currentPC = HEX :: add(currentPC, getToAdd(instructions[i]));
-		}*/
+			string currentPC = programSections[p].startLocation;
+			vector<Instruction> &instructions = programSections[p].instructions;
+			for(int i=1; i<instructions.size(); i++)
+			{
+				instructions[i].location = currentPC;
+				currentPC = HEX :: add(currentPC, getToAdd(instructions[i]));
+			}
+		}
 	}
-	string leadZeros(string s, int length)
-	{
-		string zeros;
-		length = length - s.size();
-		while(length-->0)
-			zeros += "0";
-		return zeros + s;
-	}
-	/*
+	
 	void printPass1()
 	{
-		for(int i=0; i<instructionCount; i++)
-			printf("%10s %10s %10s %10s %10s\n", leadZeros(instructions[i].location, 4).c_str(), instructions[i].label.c_str(), instructions[i].command.c_str(), instructions[i].tokens[2].c_str(), instructions[i].opCode.c_str());
-	}*/
+		for(int i=0; i<programSections.size(); i++)
+		{
+			printf("PROGRAM NUMBER #%d [instructionsCount:%d] with startLocation:%s and programName:%s \n", i, programSections[i].instructions.size(), programSections[i].startLocation.c_str(), programSections[i].programName.c_str());
+			for(int j=0; j<programSections[i].instructions.size(); j++)
+			{
+				programSections[i].instructions[j].print();
+			}
+		}
+		
+	}
 	void runPass1()
 	{
 		getLocations();
@@ -74,7 +77,7 @@ struct Assembler
 int main()
 {
 	Assembler assembler;
-	//assembler.runPass1();
-	//assembler.printPass1();
+	assembler.runPass1();
+	assembler.printPass1();
 	
 }
