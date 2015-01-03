@@ -60,9 +60,10 @@ struct Assembler
 	{
 		for(int i=0; i<programSections.size(); i++)
 		{
-			printf("PROGRAM NUMBER #%d [instructionsCount:%d] with startLocation:%s and programName:%s \n", i, programSections[i].instructions.size(), programSections[i].startLocation.c_str(), programSections[i].programName.c_str());
+			printf("\nPROGRAM NUMBER #%d [%d instruction(s)]: programName:%s with startLocation:%s\n", i, programSections[i].instructions.size(), programSections[i].programName.c_str(), programSections[i].startLocation.c_str());
 			for(int j=0; j<programSections[i].instructions.size(); j++)
 			{
+				printf("%2d]  ",j);
 				programSections[i].instructions[j].print();
 			}
 		}

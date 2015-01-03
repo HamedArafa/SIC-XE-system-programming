@@ -59,8 +59,8 @@ struct Instruction
 	}
 	void print()
 	{
-		printf("location:%8s ", HEX :: leadZeros(location, 4).c_str());
-		printf("label:%8s command:%8s opCode:%4s operandsString:%8s operandsValueType:%d operandsStyle:%d format:%d n:%d i:%d x:%d e:%d l:%d sR:%s dR:%s N:%d expressionString:%s\n", label.c_str(), command.c_str(), opCode.c_str(), operandsString.c_str(), operandsValueType, operandsStyle, format, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, sourceRegister.c_str(), destinationRegister.c_str(), N, expressionString.c_str());
+		printf("location:%-5s ", HEX :: leadZeros(location, 4).c_str());
+		printf("label:%-7s command:%-7s opCode:%-3s operandsString:%-7s operandsValueType:%d operandsStyle:%d format:%d n:%d i:%d x:%d e:%d l:%d sR:%1s dR:%1s N:%d expressionString:%s\n", label.c_str(), command.c_str(), opCode.c_str(), operandsString.c_str(), operandsValueType, operandsStyle, format, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, sourceRegister.c_str(), destinationRegister.c_str(), N, expressionString.c_str());
 	}
 };
 
