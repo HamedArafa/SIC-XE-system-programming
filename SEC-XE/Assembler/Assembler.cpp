@@ -74,7 +74,7 @@ struct Assembler
 int main()
 {
 	Assembler assembler;
-	assembler.runPass1();
+	//assembler.runPass1();
 	//assembler.printPass1();
 	
 }
