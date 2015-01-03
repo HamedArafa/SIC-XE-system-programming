@@ -57,6 +57,21 @@ struct Instruction
 		this -> expressionTerms = expressionTerms;
 		this -> expressionString = expressionString;
 	}
+	// Specific constructor for literals definition after LTORG
+	Instruction(string label, string command, string operandsString, int operandsStyle, string opCode, int operandsValueType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionString, vector<pair<char, string> > expressionTerms)
+	{ 
+		tokens.push_back(this -> originalLabel = this -> label = label);
+		tokens.push_back(this -> originalCommand = this -> command = command);
+		tokens.push_back(this -> originalOperandsString = this -> operandsString = operandsString);
+		
+		this -> operandsStyle = operandsStyle;
+		this -> operandsValueType = operandsValueType;
+		opCode = "";
+		format = -1;
+		isIndirect = isImmediate = isIndexed = isExtended = false;
+		isLiteral = true;
+		N = 0;
+	}
 	void print()
 	{
 		printf("location:%-5s ", HEX :: leadZeros(location, 4).c_str());
@@ -84,6 +99,13 @@ struct ProgramSection
 		this -> instructions = instructions;
 		this -> symbolTable = symbolTable;
 	}
+};
+
+class Literal
+{
+	public:
+	string location, programSectionName, data;
+	int programSectionIndex;
 };
 
 class InstructionSetElement
@@ -282,7 +304,7 @@ struct PARSER
 		
 		return expressionTerms;
 	}
-	pair<vector<ProgramSection>, string> parseProgramCode(vector<string> lines)
+	pair<pair<vector<ProgramSection>, map<string, int> >, string> parseProgramCode(vector<string> lines)
 	{
 		vector<ProgramSection> programSections;
 		string entryPoint;
@@ -344,7 +366,7 @@ struct PARSER
 				programSections[programSectionIndex[currentProgramSectionName]].instructions.push_back(Instruction(tokens, label, command, operandsString, operandsStyle, format, opCode, operandsValueType, isIndirect, isImmediate, isIndexed, isExtended, isLiteral, destinationRegister, sourceRegister, N, expressionString, expressionTerms));
 		}
 		
-		return make_pair(programSections, entryPoint);
+		return make_pair(make_pair(programSections, programSectionIndex), entryPoint);
 	}
 	void parseInstructionSet(vector<string> lines)
 	{
