@@ -387,5 +387,27 @@ struct PARSER
 		return;
 	}
 };
-
+int evaluateOperand(Instruction & instruction, ModificationBox & modBox, map <string,string > & symbolTable)
+{
+   int equiValue =0;
+   vector< pair<char,string> >terms = instruction.expressionTerms;
+   for (int i=0;i<terms.size();i++){
+         if ( symbolTable.find( terms[i].second  )!=symbolTable.end() ){   // the current symbol is not external
+            if (terms[i].first=='+'){
+               equiValue+= HEX::getInt(symbolTable[ terms[i].second] );
+            }
+            else{
+               equiValue-= HEX::getInt(symbolTable[ terms[i].second ]);
+            }
+         }
+         else{
+            if (instruction.format==4){
+               modBox.addRecord( ModificationRecord( HEX::add(instruction.location,"1"),"5",(""+terms[i].first)+terms[i].second));
+            }
+            else{
+               modBox.addRecord( ModificationRecord(instruction.location,"6",(""+terms[i].first)+terms[i].second));
+            }
+         }
+   }
+}
 

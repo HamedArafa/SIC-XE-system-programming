@@ -3,18 +3,15 @@ using namespace std;
 #include "../Shared/shared.cpp"
 #include "memoryunits.cpp"
 #include "modificationbox.cpp"
-string getFormat1ObjectCode(string);
-string getFormat2ObjectCode(string,string);
+string getFormat1ObjectCode(Instruction&);
+string getFormat2ObjectCode(Instruction&);
 int main ()
 {
- //  string testcommand= "ADD";
- //  string testoperands="A,L";
- //  string testObjectCode= getFormat1ObjectCode(testcommand); //getFormat2ObjectCode(testcommand,testoperands);
-//   cout<<testObjectCode;
+
 }
-string getFormat1ObjectCode(string command)
+string getFormat1ObjectCode(Instruction & instruction)
 {
-   string opCode = getOpCode(command);
+   string opCode = instruction.opCode;
    return opCode;
 }
 int getRegisterNumber(string reg)
@@ -47,25 +44,44 @@ int getRegisterNumber(string reg)
       return  6;
    }
 }
-string getObjectCode(Instruction instruction)
+string getObjectCode(Instruction & instruction)
 {
 
 }
-string getFormat2ObjectCode(Instruction instruction)
+string getFormat2ObjectCode(Instruction& instruction)
 {
    string objectCode;
    objectCode+=instruction.opCode;
-   objectCode += ( getRegisterNumber(instruction.sourceRegister) +'0');
-   objectCode+= ( getRegisterNumber( instruction.distinationRegister ) +'0' );
+   objectCode += ( getRegisterNumber( instruction.sourceRegister) +'0');
+   objectCode+= (  getRegisterNumber( instruction.destinationRegister ) +'0' );
    return objectCode;
 }
-string getFormat1ObjectCode(Instructions instruction)
+string getFormat3ObjectCode (Instruction& instruction)
 {
-   return instruction.opCode;
+
+
+
 }
-string getFormat3ObjectCode (Instruction instruction)
+int evaluateOperand(Instruction & instruction, ModificationBox & modBox, map <string,string > & symbolTable)
 {
-
-
-
+   int equiValue =0;
+   vector< pair<char,string> >terms = instruction.expressionTerms;
+   for (int i=0;i<terms.size();i++){
+         if ( symbolTable.find( terms[i].second  )!=symbolTable.end() ){   // the current symbol is not external
+            if (terms[i].first=='+'){
+               equiValue+= HEX::getInt(symbolTable[ terms[i].second] );
+            }
+            else{
+               equiValue-= HEX::getInt(symbolTable[ terms[i].second ]);
+            }
+         }
+         else{
+            if (instruction.format==4){
+               modBox.addRecord( ModificationRecord( HEX::add(instruction.location,"1"),"5",(""+terms[i].first)+terms[i].second));
+            }
+            else{
+               modBox.addRecord( ModificationRecord(instruction.location,"6",(""+terms[i].first)+terms[i].second));
+            }
+         }
+   }
 }
