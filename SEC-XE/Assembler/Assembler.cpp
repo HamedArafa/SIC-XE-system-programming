@@ -4,12 +4,16 @@ using namespace std;
 #include "../Shared/shared.cpp"
 #include "../Shared/Common.cpp"
 
+/* +++++++++ NOTES +++++++++ */
+// Empty command in an instruction means a literal definition
+
+
 struct Assembler
 {
 	// MAIN DATA
 	vector<ProgramSection> programSections;
-	map<pair<char, string>, pair<string, string> > literalsTable;
-	string entryPoint;
+	map<pair<char, string>, pair<string, string> > literalsTable; // Takes a pair for example ('C', 'EOF') and returns a pair (programSectionName, location)
+	string entryPoint; // The entry point of the program which is specified beside the END
 	
 	// AUXILIARY DATA
 	map<string, int> programSectionIndex; // Give it the program section name, returns its ID or index in the programSections vector.
@@ -152,7 +156,7 @@ struct Assembler
 	}
 	void printLiteralsTable()
 	{
-		printf("\LITERALS TABLE:\n");
+		printf("\nLiterals Table:\n");
 		for(map<pair<char, string>, pair<string, string> >::iterator it = literalsTable.begin(); it != literalsTable.end(); it++)
 		{
 			pair<pair<char, string>, pair<string, string> > literal = *it;
