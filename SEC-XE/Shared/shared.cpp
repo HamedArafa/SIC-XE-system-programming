@@ -58,14 +58,19 @@ struct Instruction
 		this -> expressionString = expressionString;
 	}
 	// Specific constructor for literals definition after LTORG
-	Instruction(string label, string command, string operandsString, int operandsStyle, string opCode, int operandsValueType, bool isIndirect, bool isImmediate, bool isIndexed, bool isExtended, bool isLiteral, string destinationRegister, string sourceRegister, int N, string expressionString, vector<pair<char, string> > expressionTerms)
+	Instruction(vector<string> tokens, string label, string command, string operandsString, int operandsValueType)
 	{ 
-		tokens.push_back(this -> originalLabel = this -> label = label);
-		tokens.push_back(this -> originalCommand = this -> command = command);
-		tokens.push_back(this -> originalOperandsString = this -> operandsString = operandsString);
+		this -> tokens = tokens;
+		this -> originalLabel = tokens[0];
+		this -> originalCommand = tokens[1];
+		this -> originalOperandsString = tokens[2];
 		
-		this -> operandsStyle = operandsStyle;
+		this -> label = label;
+		this -> command = command;
+		this -> operandsString = operandsString;
 		this -> operandsValueType = operandsValueType;
+		
+		operandsStyle = D_OPERAND_STYLE;
 		opCode = "";
 		format = -1;
 		isIndirect = isImmediate = isIndexed = isExtended = false;

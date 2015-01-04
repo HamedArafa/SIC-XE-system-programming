@@ -6,10 +6,14 @@ using namespace std;
 
 struct Assembler
 {
+	// MAIN DATA
 	vector<ProgramSection> programSections;
-	vector<Literal> literalsTable;
+	map<pair<char, string>, pair<string, string> > literalsTable;
 	string entryPoint;
-	map<string, int> programSectionIndex;
+	
+	// AUXILIARY DATA
+	map<string, int> programSectionIndex; // Give it the program section name, returns its ID or index in the programSections vector.
+	map<pair<char, string>, bool> definedLiterals; // Is a map of the defined Literals as pairs of char (which is X or C) and string which is the data between single quotes.
 	
 	Assembler()
 	{
@@ -32,7 +36,7 @@ struct Assembler
 				return HEX::getString(DEC::getInt(instruction.operandsString) * 3);
 			if(instruction.command == "RESB")
 				return HEX::getString(DEC::getInt(instruction.operandsString));
-			if(instruction.command == "BYTE")
+			if(instruction.command == "BYTE" || instruction.command == "")
 			{
 				if(instruction.operandsValueType == Instruction :: CHAR_DATA_OPERAND_VALUE)
 					return HEX::getString(instruction.operandsString.size());
@@ -55,33 +59,30 @@ struct Assembler
 			vector<Instruction> newInstructions;
 			for(int i=0; i<instructions.size(); i++)
 			{
-				if(instructions[i].isLiteral)
+				if((i == instructions.size() && p == 0) || instructions[i].command == "LTORG")
+				{
+					for(int j=0; j<undefinedLiterals.size(); j++)
+					{
+						vector<string> tokens;
+						tokens.push_back("*"), tokens.push_back(""), tokens.push_back(undefinedLiterals[j].first + "'" + undefinedLiterals[j].second + "'");
+						if(!definedLiterals.count(undefinedLiterals[j]))
+						{
+							definedLiterals[undefinedLiterals[j]] = 1;
+							newInstructions.push_back(Instruction(tokens, "*", "", undefinedLiterals[j].second, undefinedLiterals[j].first == 'X' ? (Instruction :: HEX_DATA_OPERAND_VALUE):(Instruction :: CHAR_DATA_OPERAND_VALUE)));
+						}
+					}
+					undefinedLiterals.clear();
+				}
+				else if(i < instructions.size() && instructions[i].isLiteral)
 				{
 					char type = 'X';
 					if(instructions[i].operandsValueType == Instruction :: CHAR_DATA_OPERAND_VALUE)
 						type = 'C';
 					undefinedLiterals.push_back(make_pair(type, instructions[i].operandsString));
 				}
-				else if(instructions[i].command == "LTORG")
-				{
-					for(int j=0; j<undefinedLiterals.size(); j++)
-						newInstructions.push_back(Instruction());
-					undefinedLiterals.clear();
-				}
-				else newInstructions.push_back(instructions[i]);
+				else if(i < instructions.size()) newInstructions.push_back(instructions[i]);
 			}
 			instructions = newInstructions;
-		}
-	}
-	void getSymbolTables()
-	{
-		for(int p=0; p<programSections.size(); p++)
-		{
-			vector<Instruction> &instructions = programSections[p].instructions;
-			for(int i=0; i<instructions.size(); i++)
-			{
-				
-			}
 		}
 	}
 	void getLocations()
@@ -97,9 +98,32 @@ struct Assembler
 			}
 		}
 	}
+	void getSymbolTables()
+	{
+		for(int p=0; p<programSections.size(); p++)
+		{
+			vector<Instruction> &instructions = programSections[p].instructions;
+			for(int i=0; i<instructions.size(); i++)
+			{
+				if(instructions[i].label != "" && instructions[i].label != "*")
+				{
+					if(instructions[i].command == "EQU" && instructions[i].operandsString != "*") continue;
+					programSections[p].symbolTable[instructions[i].label] = instructions[i].location;
+				}
+			}
+		}
+	}
 	void getLiteralsTable()
 	{
-		
+		for(int p=0; p<programSections.size(); p++)
+		{
+			vector<Instruction> &instructions = programSections[p].instructions;
+			for(int i=0; i<instructions.size(); i++)
+			{
+				if(instructions[i].command == "") // This means this is a literal.
+					literalsTable[make_pair(instructions[i].operandsValueType == Instruction::CHAR_DATA_OPERAND_VALUE ? 'C' : 'X', instructions[i].operandsString)] = make_pair(programSections[p].programName, instructions[i].location);
+			}
+		}
 	}
 	
 	void printPass1()
@@ -114,11 +138,32 @@ struct Assembler
 			}
 		}
 	}
+	void printSymbolTables()
+	{
+		for(int i=0; i<programSections.size(); i++)
+		{
+			printf("\nSymbol Table of Program #%d\n", i);
+			for(map<string, string>::iterator it = programSections[i].symbolTable.begin(); it != programSections[i].symbolTable.end(); it++)
+			{
+				pair<string, string> symbol = *it;
+				printf("%s -> %s\n",symbol.first.c_str(), symbol.second.c_str());
+			}
+		}
+	}
+	void printLiteralsTable()
+	{
+		printf("\LITERALS TABLE:\n");
+		for(map<pair<char, string>, pair<string, string> >::iterator it = literalsTable.begin(); it != literalsTable.end(); it++)
+		{
+			pair<pair<char, string>, pair<string, string> > literal = *it;
+			printf("%c'%s' -> %s:%s\n",literal.first.first, literal.first.second.c_str(), literal.second.first.c_str(), literal.second.second.c_str());
+		}
+	}
 	void runPass1()
 	{
 		addLiteralsDefinitions();
-		getSymbolTables();
 		getLocations();
+		getSymbolTables();
 		getLiteralsTable();
 	}
 };
@@ -128,5 +173,6 @@ int main()
 	Assembler assembler;
 	assembler.runPass1();
 	assembler.printPass1();
-	
+	assembler.printSymbolTables();
+	assembler.printLiteralsTable();
 }
