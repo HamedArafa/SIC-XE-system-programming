@@ -12,6 +12,7 @@ struct Assembler
 {
 	// MAIN DATA
 	vector<ProgramSection> programSections;
+	map<pair<char, string>, pair<string, string> > literalsTable; // Takes a pair for example ('C', 'EOF') and returns a pair (programSectionName, location)
 	string entryPoint; // The entry point of the program which is specified beside the END
 	
 	// AUXILIARY DATA
@@ -99,7 +100,6 @@ struct Assembler
 				instructions[i].location = currentPC;
 				currentPC = HEX :: add(currentPC, getToAdd(instructions[i]));
 			}
-			programSections[p].endLocation = currentPC;
 		}
 	}
 	void getSymbolTables()
@@ -125,7 +125,7 @@ struct Assembler
 			for(int i=0; i<instructions.size(); i++)
 			{
 				if(instructions[i].command == "") // This means this is a literal.
-					programSections[p].literalsTable[make_pair(instructions[i].operandsValueType == Instruction::CHAR_DATA_OPERAND_VALUE ? 'C' : 'X', instructions[i].operandsString)] = instructions[i].location;
+					literalsTable[make_pair(instructions[i].operandsValueType == Instruction::CHAR_DATA_OPERAND_VALUE ? 'C' : 'X', instructions[i].operandsString)] = make_pair(programSections[p].programName, instructions[i].location);
 			}
 		}
 	}
@@ -146,7 +146,7 @@ struct Assembler
 	{
 		for(int i=0; i<programSections.size(); i++)
 		{
-			printf("\nSymbol Table of Program #%d with name: %s\n", i, programSections[i].programName.c_str());
+			printf("\nSymbol Table of Program #%d\n", i);
 			for(map<string, string>::iterator it = programSections[i].symbolTable.begin(); it != programSections[i].symbolTable.end(); it++)
 			{
 				pair<string, string> symbol = *it;
@@ -156,14 +156,11 @@ struct Assembler
 	}
 	void printLiteralsTable()
 	{
-		for(int i=0; i<programSections.size(); i++)
+		printf("\nLiterals Table:\n");
+		for(map<pair<char, string>, pair<string, string> >::iterator it = literalsTable.begin(); it != literalsTable.end(); it++)
 		{
-			printf("\nLiterals Table of Program #%d with name: %s\n", i, programSections[i].programName.c_str());
-			for(map<pair<char, string>, string >::iterator it = programSections[i].literalsTable.begin(); it != programSections[i].literalsTable.end(); it++)
-			{
-				pair<pair<char, string>, string > literal = *it;
-				printf("%c'%s' -> %s\n",literal.first.first, literal.first.second.c_str(), literal.second.c_str());
-			}
+			pair<pair<char, string>, pair<string, string> > literal = *it;
+			printf("%c'%s' -> %s:%s\n",literal.first.first, literal.first.second.c_str(), literal.second.first.c_str(), literal.second.second.c_str());
 		}
 	}
 	void runPass1()

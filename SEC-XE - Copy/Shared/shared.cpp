@@ -89,8 +89,6 @@ struct ProgramSection
 	string programName, startLocation;
 	vector<Instruction> instructions;
 	map<string, string> symbolTable;
-	map<pair<char, string>, string > literalsTable; // Takes a pair for example ('C', 'EOF') and returns a pair (programSectionName, location)'
-	string endLocation;
 	
 	ProgramSection(string programName, string startLocation)
 	{
@@ -221,7 +219,7 @@ struct PARSER
 					lines[i][j] = toupper(lines[i][j]);
 		return lines;
 	}
-	static bool isNumber(string s)
+	bool isNumber(string s)
 	{
 		for(int i=0; i<s.size(); i++)
 			if(!isdigit(s[i])) return 0;
@@ -367,11 +365,7 @@ struct PARSER
 				if(operandsString.size()) currentProgramSectionName = operandsString;
 				else currentProgramSectionName = defaultProgramSectionName;
 			}
-			else if(command == "CSECT")
-			{
-				currentProgramSectionName = label;
-				//break;
-			}
+			else if(command == "CSECT") currentProgramSectionName = label;
 			
 			if(!programSectionIndex.count(currentProgramSectionName))
 			{
@@ -417,15 +411,6 @@ int evaluateOperand(Instruction & instruction, map<string, string> & symbolTable
                equiValue-= HEX::getInt(symbolTable[ terms[i].second ]);
             }
          }
-         else if(PARSER::isNumber(terms[i].second))
-		{
-			if (terms[i].first=='+'){
-               equiValue+= HEX::getInt(terms[i].second );
-            }
-            else{
-               equiValue-= HEX::getInt(terms[i].second );
-            }
-		}
    }
    return equiValue;
 }
