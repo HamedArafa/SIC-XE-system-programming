@@ -12,9 +12,23 @@ struct ModificationRecord {
 class ModificationBox{
    private:
    vector<ModificationRecord> modifications;
+   int pointer;
    public:
+   ModificationBox()
+   {
+      pointer=0;
+   }
    void addRecord(ModificationRecord modificationRecord)
    {
       modifications.push_back(modificationRecord);
+   }
+   ModificationRecord fetch()
+   {
+      return modifications[pointer];
+      pointer++;
+   }
+   bool isEmpty ()
+   {
+      return pointer!=modifications.size();
    }
 };
